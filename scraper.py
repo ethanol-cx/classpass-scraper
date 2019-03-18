@@ -107,3 +107,6 @@ class Scraper():
                 {'id': id, 'search_date': search_date, 'venue_name': venue_name, 'location_name': location_name,
                  'activities': activities, 'display_rating_total': display_rating_total, 'display_rating_average': display_rating_average,
                  'description': description}, ignore_index=True)
+
+    def save_venues_to_pickle(self):
+        pd.to_pickle(self.venues, 'scraped_venues.pkl')
