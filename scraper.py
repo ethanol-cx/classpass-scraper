@@ -94,6 +94,11 @@ class Scraper():
         return None
 
     def append_search_results(self, data):
+        """Given the data, it append each entry of the data to the existing dataframe in the scraper instance.
+
+        Arguments:
+            data {[an array of json objects]} -- [each entry of the array is a json object containing the venue information]
+        """
         search_date = date.today().strftime('%Y-%m-%d')
         for entry in data:
             id = entry['venue_id']
@@ -108,5 +113,7 @@ class Scraper():
                  'activities': activities, 'display_rating_total': display_rating_total, 'display_rating_average': display_rating_average,
                  'description': description}, ignore_index=True)
 
-    def save_venues_to_pickle(self):
-        pd.to_pickle(self.venues, 'scraped_venues.pkl')
+    def save_venues_to_pickle(self, path='scraped_venues.pkl'):
+        """Save the current venues to a pickle file locally. The default path is 'scraped_venues.pkl'
+        """
+        pd.to_pickle(self.venues, path)
