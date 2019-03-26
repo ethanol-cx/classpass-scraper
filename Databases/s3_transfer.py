@@ -8,18 +8,6 @@ from functools import wraps
 from time import time
 
 
-def measure(func):
-    @wraps(func)
-    def _time_it(*args, **kwargs):
-        start = int(round(time() * 1000))
-        try:
-            return func(*args, **kwargs)
-        finally:
-            end_ = int(round(time() * 1000)) - start
-            print("Total execution time: {end_ if end_ > 0 else 0} ms")
-    return _time_it
-
-
 def s3_transfer(bucket_name, file_name, direction, file_type, file_to_upload=None):
     """
     This function uploads or downloads files from AWS s3 buckets depending on
@@ -33,70 +21,28 @@ def s3_transfer(bucket_name, file_name, direction, file_type, file_to_upload=Non
     direction (str), only accepts "upload" or "download"
 
     """
-
     s3_resource = boto3.resource('s3')
-    # bucket = s3_resource.Bucket(name=str(bucket_name))
-    # bucket_object = bucket.Object(
-    #     bucket_name=str(bucket_name),
-    #     key=str(file_name))
-
-    if str(direction).lower() == 'upload':
-
+    key = '{}.{}'.format(file_name, file_type)
+    if direction.lower() == 'upload':
         try:
-
-            s3_resource.Bucket(name=str(bucket_name)).upload_file(
-                Filename=str(file_to_upload),
-                Key=str(file_name + '.' + file_type))
-
+            s3_resource.Bucket(name=bucket_name).upload_file(
+                Filename=file_to_upload, Key=key)
         except:
-
             print("\nupload error occured at s3 bucket block with error \
             message:\n")
             traceback.print_exc(limit=1)
-
-    elif str(direction).lower() == 'download':
-
+    elif direction.lower() == 'download':
         try:
-            print(os.getcwd() + '/' + file_name + '.' + file_type)
-            print(file_name + '.' + file_type)
-            s3_resource.Object(
-                str(bucket_name),
-                str(file_name + '.' + file_type)).download_file(
-                    file_name + '.' + file_type)
-
+            content = s3_resource.Object(bucket_name, key).get()[
+                'Body'].read().decode('utf-8')
             if file_type.lower() == 'csv':
-
-                df = pd.DataFrame(os.getcwd() + '/' +
-                                  file_name + '.' + file_type)
-                delete_file(file_name, file_type)
-                return df
-
+                return pd.read_csv(content)
             elif file_type.lower() == 'json':
-
-                with open(os.getcwd() + '/' + file_name + '.' + file_type) as f:
-                    dictionary = json.load(f)
-                    delete_file(file_name, file_type)
-                    return dictionary
-
+                return json.loads(content)
         except:
-
-            print("\ndownload error occured at s3 bucket block with error \
-            message:\n")
+            print("download error occured at s3 bucket block with error \
+            message:")
             traceback.print_exc(limit=1)
-
     else:
-
-        print("\ndirection entered can only be upload or download! you entered\
-        : {0}\n".format(str(direction)))
-
-
-def delete_file(file_name, file_type):
-    """
-    This function is the opposite of the create_file() function. It takes
-    two inputs and deletes a specified file from the current working directory
-    """
-
-    if os.path.exists(str(file_name) + '.' + file_type):
-        os.remove(str(file_name) + '.' + file_type)
-    else:
-        print("The file does not exist")
+        print("direction entered can only be upload or download! you entered: {0}".format(
+            direction))

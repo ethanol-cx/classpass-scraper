@@ -3,7 +3,3 @@ boto3==1.9.106
 mysql-connector==2.1.6
 pandas==0.24.1
 requests==2.21.0
-json
-random
-datetime
-time
