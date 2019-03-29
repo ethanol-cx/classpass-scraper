@@ -11,9 +11,10 @@
 This tool scrapes selected data from classpass platform (https://classpass.com/) into the mysql database. It loads the zipcode list from the database, search for fitness centers within the zipcode range and stores the data back to the database. Provided codes also supports tranferring the credentials of database connection from aws s3 bucket and dockerizing the application.
 
 
-<img src="https://cdn4.iconfinder.com/data/icons/logos-and-brands/512/267_Python_logo-512.png" height="75" style="margin: 10px;">
-<img src="https://img.icons8.com/color/48/000000/docker.png" height="75" style="margin: 10px;">
-<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/AmazonWebservices_Logo.svg/580px-AmazonWebservices_Logo.svg.png" height="75" style="margin: 10px;">
+<img src="https://cdn4.iconfinder.com/data/icons/logos-and-brands/512/267_Python_logo-512.png" height="75" style="margin: 10px; float: left;">
+<img src="https://img.icons8.com/color/48/000000/docker.png" height="75" style="margin: 10px; float: left;">
+<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/AmazonWebservices_Logo.svg/580px-AmazonWebservices_Logo.svg.png" height="75" style="margin: 10px; float:left;">
+<div style="clear:both;"></div>
 
 ## Getting Started
 Please follow these steps before running the code for the first time.
