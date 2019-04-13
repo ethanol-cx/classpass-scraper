@@ -42,6 +42,7 @@ class Scraper():
         'platform': 'web',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0 Win64 x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36 Edge/17.17134'
     }
+    rows_retrieved = 0
 
     def __init__(self, category_idx=0):
         """
@@ -54,7 +55,7 @@ class Scraper():
         self.category_idx = category_idx
         # We store the following information:
         # 'id': the venue_id
-        # 'search_date': the date of the search. We record it because the rating and the rating total will change over time.
+        # 'datetime': the date of the search. We record it because the rating and the rating total will change over time.
         # 'venue_name': the venue name
         # 'location_name': the location name
         # 'activities': an array of the activities/tags
@@ -62,7 +63,7 @@ class Scraper():
         # 'display_rating_average': the average rating
         # 'description': the description of the venue
         self.venues = pd.DataFrame(columns=[
-                                   'id', 'search_date', 'venue_name', 'location_name', 'activities', 'display_rating_total', 'display_rating_average', 'description'])
+                                   'id', 'datetime', 'venue_name', 'zipcode', 'location_name', 'activities', 'display_rating_total', 'display_rating_average', 'description'])
 
     @staticmethod
     def random_sleep():
@@ -72,7 +73,7 @@ class Scraper():
         Returns:
             None
         """
-        time.sleep(uniform(0, 2))
+        time.sleep(uniform(0, 1))
 
     def get_place_id_from_zipcode(self, zipcode):
         """Given the zipcode of the are of interest, return place_id
@@ -80,12 +81,15 @@ class Scraper():
         Arguments:
             zipcode {string} -- the zipcode of the area of interest
         """
+        # the specific payload on class_pass autocomplete
         place_id_request_payload = {
             "autocomplete_type": "geocode", "query": str(zipcode)}
         place_id_resp = self.session.post(
             Scraper.place_id_url, headers=Scraper.search_request_header, data=json.dumps(
                 place_id_request_payload), verify=True)
         if place_id_resp.status_code == 200:
+            if len(json.loads(place_id_resp.text)['data']['predictions']) == 0:
+                return None
             return json.loads(place_id_resp.text)['data']['predictions'][0]['place_id']
         print('ERROR with status code {}'.format(place_id_resp.status_code))
         print('HTTP response body {}'.format(place_id_resp.text))
@@ -100,11 +104,13 @@ class Scraper():
             'https://classpass.com/_api/unisearch/v1/location/details/{}'.format(place_id), headers=Scraper.place_id_request_header, verify=False)
         if lat_lon_resp.status_code == 200:
             lat_lon_resp_data = json.loads(lat_lon_resp.text)['data']
+            if not lat_lon_resp_data:
+                return [None, None]
             return [lat_lon_resp_data['lat'], lat_lon_resp_data['lon']]
         print('ERROR with status code {}'.format(lat_lon_resp.status_code))
         print('HTTP response body {}'.format(lat_lon_resp.text))
 
-    def get_search_results(self, lat, lon):
+    def get_search_results(self, lat, lon, place_id):
         """It return json data of the search results.
         """
         # sleep to avoid detection
@@ -117,6 +123,7 @@ class Scraper():
                     'tag': [],
                     'lat': lat,
                     'lon': lon,
+                    'place_id': place_id,
                     'result_type': 'VENUE'
                 }
             }
@@ -138,13 +145,16 @@ class Scraper():
         raise Exception(
             'Request failed {} times. It is probably blocked.'.format(self.max_iter))
 
-    def append_search_results(self, data):
+    def append_search_results(self, data, zipcode, attach):
         """Given the data, it append each entry of the data to the existing dataframe in the scraper instance.
 
         Arguments:
             data {an array of json objects} -- each entry of the array is a json object containing the venue information
         """
-        search_date = date.today().strftime('%Y-%m-%d')
+        datetime = date.today().strftime('%Y-%m-%d')
+        if not attach:
+            venues = pd.DataFrame(columns=[
+                'id', 'datetime', 'venue_name', 'zipcode', 'location_name', 'activities', 'display_rating_total', 'display_rating_average', 'description'])
         for entry in data:
             id = entry['venue_id']
             venue_name = entry['venue_name']
@@ -153,10 +163,16 @@ class Scraper():
             description = entry['description'] if 'description' in entry else None
             display_rating_total = entry['display_rating_total'] if 'display_rating_total' in entry else None
             display_rating_average = entry['display_rating_average'] if 'display_rating_average' in entry else None
-            self.venues = self.venues.append(
-                {'id': id, 'search_date': search_date, 'venue_name': venue_name, 'location_name': location_name,
-                 'activities': activities, 'display_rating_total': display_rating_total, 'display_rating_average': display_rating_average,
-                 'description': description}, ignore_index=True)
+            if attach:
+                self.venues = self.venues.append({'id': id, 'datetime': datetime, 'venue_name': venue_name, 'zipcode': zipcode, 'location_name': location_name,
+                                                  'activities': activities, 'display_rating_total': display_rating_total, 'display_rating_average': display_rating_average,
+                                                  'description': description}, ignore_index=True)
+            else:
+                venues = venues.append(
+                    {'id': id, 'datetime': datetime, 'venue_name': venue_name, 'zipcode': zipcode, 'location_name': location_name,
+                     'activities': activities, 'display_rating_total': display_rating_total, 'display_rating_average': display_rating_average,
+                     'description': description}, ignore_index=True)
+        return
 
     def save_venues_to_pickle(self, path='scraped_venues.pkl'):
         """Save the current venues to a pickle file locally. The default path is 'scraped_venues.pkl'
