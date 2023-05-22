@@ -3,4 +3,4 @@ sqlalchemy-utils==0.33.11
 boto3==1.9.106
 mysql-connector==2.1.7
 pandas==0.24.1
-requests==2.21.0
+requests==2.31.0
